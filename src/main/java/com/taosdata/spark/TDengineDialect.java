@@ -55,9 +55,25 @@ public class TDengineDialect extends JdbcDialect {
             // VARCHAR requires an explicit length in TDengine
             return Option.apply(new JdbcType("VARCHAR(4096)", Types.VARCHAR));
         }
+        if (DataTypes.BooleanType.sameType(dt)) {
+            // Spark's default is BIT(1), while the TDengine keyword is BOOL
+            return Option.apply(new JdbcType("BOOL", Types.BOOLEAN));
+        }
         if (DataTypes.FloatType.sameType(dt)) {
             // Spark's default is REAL, which TDengine does not support
             return Option.apply(new JdbcType("FLOAT", Types.FLOAT));
+        }
+        if (DataTypes.DoubleType.sameType(dt)) {
+            // Spark's default is DOUBLE PRECISION, which TDengine does not support
+            return Option.apply(new JdbcType("DOUBLE", Types.DOUBLE));
+        }
+        if (DataTypes.ByteType.sameType(dt)) {
+            // Spark's default is BYTE, while the TDengine keyword is TINYINT
+            return Option.apply(new JdbcType("TINYINT", Types.TINYINT));
+        }
+        if (DataTypes.ShortType.sameType(dt)) {
+            // Spark's default is INTEGER, which wastes width and reads back as IntegerType
+            return Option.apply(new JdbcType("SMALLINT", Types.SMALLINT));
         }
         if (DataTypes.DateType.sameType(dt)) {
             // TDengine has no DATE type; store dates as timestamps

@@ -68,20 +68,24 @@ public class TDengineDialectTest {
     public void testGetJDBCType() {
         assertEquals(Option.apply(new JdbcType("VARCHAR(4096)", Types.VARCHAR)),
                 dialect.getJDBCType(DataTypes.StringType));
+        assertEquals(Option.apply(new JdbcType("BOOL", Types.BOOLEAN)),
+                dialect.getJDBCType(DataTypes.BooleanType));
         assertEquals(Option.apply(new JdbcType("FLOAT", Types.FLOAT)),
                 dialect.getJDBCType(DataTypes.FloatType));
+        assertEquals(Option.apply(new JdbcType("DOUBLE", Types.DOUBLE)),
+                dialect.getJDBCType(DataTypes.DoubleType));
+        assertEquals(Option.apply(new JdbcType("TINYINT", Types.TINYINT)),
+                dialect.getJDBCType(DataTypes.ByteType));
+        assertEquals(Option.apply(new JdbcType("SMALLINT", Types.SMALLINT)),
+                dialect.getJDBCType(DataTypes.ShortType));
         assertEquals(Option.apply(new JdbcType("TIMESTAMP", Types.TIMESTAMP)),
                 dialect.getJDBCType(DataTypes.DateType));
         assertEquals(Option.apply(new JdbcType("VARBINARY(4096)", Types.VARBINARY)),
                 dialect.getJDBCType(DataTypes.BinaryType));
 
         // types with working Spark defaults: the dialect must abstain
-        assertEquals(Option.empty(), dialect.getJDBCType(DataTypes.BooleanType));
-        assertEquals(Option.empty(), dialect.getJDBCType(DataTypes.ByteType));
-        assertEquals(Option.empty(), dialect.getJDBCType(DataTypes.ShortType));
         assertEquals(Option.empty(), dialect.getJDBCType(DataTypes.IntegerType));
         assertEquals(Option.empty(), dialect.getJDBCType(DataTypes.LongType));
-        assertEquals(Option.empty(), dialect.getJDBCType(DataTypes.DoubleType));
         assertEquals(Option.empty(), dialect.getJDBCType(DataTypes.TimestampType));
     }
 }
