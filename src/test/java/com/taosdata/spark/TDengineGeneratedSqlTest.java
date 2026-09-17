@@ -33,7 +33,8 @@ import static org.junit.Assert.fail;
  */
 public class TDengineGeneratedSqlTest {
 
-    private static final String BASE_URL = "jdbc:TAOS-WS://127.0.0.1:6041/";
+    private static final String BASE_URL =
+            System.getProperty("tdengine.ws.url", "jdbc:TAOS-WS://127.0.0.1:6041/");
     private static final String DB = "spark_sql_gen_test";
     private static final String TABLE = DB + ".meters";
     private static final long TS1 = 1756713600000L;
@@ -42,6 +43,7 @@ public class TDengineGeneratedSqlTest {
 
     private static SparkSession spark;
     private static Properties connProps;
+    private static boolean legacyBindPath;
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -56,6 +58,7 @@ public class TDengineGeneratedSqlTest {
             Assume.assumeNoException("cannot reach TDengine at " + BASE_URL + ", skipping integration tests", t);
             return;
         }
+        legacyBindPath = TestServerInfo.isLegacyBindPath(conn);
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE DATABASE IF NOT EXISTS " + DB);
             stmt.execute("CREATE TABLE IF NOT EXISTS " + TABLE + " (" +
@@ -163,13 +166,11 @@ public class TDengineGeneratedSqlTest {
                 .add("d", DataTypes.DoubleType)
                 .add("i", DataTypes.IntegerType)
                 .add("l", DataTypes.LongType)
-                .add("by", DataTypes.ByteType)
-                .add("sh", DataTypes.ShortType)
                 .add("bin", DataTypes.BinaryType);
 
         List<Row> first = new ArrayList<>();
         first.add(RowFactory.create(new Timestamp(TS1), true, "str-1", 1.5f, 2.5, 10, 100L,
-                (byte) 1, (short) 2, new byte[]{0x01, (byte) 0xff}));
+                new byte[]{0x01, (byte) 0xff}));
         spark.createDataFrame(first, schema)
                 .write()
                 .mode("append")
@@ -186,13 +187,11 @@ public class TDengineGeneratedSqlTest {
         assertEquals(2.5, row.getDouble(4), 0.0);
         assertEquals(10, row.getInt(5));
         assertEquals(100L, row.getLong(6));
-        assertEquals(1, row.getInt(7));
-        assertEquals(2, row.getInt(8));
 
         // overwrite: Spark issues DROP TABLE + CREATE TABLE + INSERT
         List<Row> second = new ArrayList<>();
         second.add(RowFactory.create(new Timestamp(TS2), false, "str-2", 3.5f, 4.5, 20, 200L,
-                (byte) 3, (short) 4, new byte[]{0x02}));
+                new byte[]{0x02}));
         spark.createDataFrame(second, schema)
                 .write()
                 .mode("overwrite")
@@ -203,6 +202,35 @@ public class TDengineGeneratedSqlTest {
         assertEquals(new Timestamp(TS2), rows.get(0).getTimestamp(0));
         assertEquals("str-2", rows.get(0).getString(2));
         assertEquals(20, rows.get(0).getInt(5));
+    }
+
+    @Test
+    public void testSparkCreateTableWithTinyintSmallint() {
+        // Spark binds ByteType/ShortType via setInt; the driver's legacy row-bind
+        // path (server < 3.4.1.13) swaps the column type without converting the value,
+        // which fails with a ClassCastException in SerializeBlock. The stmt2 bind path
+        // of server >= 3.4.1.13 converts the value correctly.
+        Assume.assumeFalse("server < 3.4.1.13: driver legacy bind path cannot write"
+                + " ByteType/ShortType to TINYINT/SMALLINT columns", legacyBindPath);
+        String created = DB + ".spark_tiny_small";
+
+        StructType schema = new StructType()
+                .add("ts", DataTypes.TimestampType)
+                .add("by", DataTypes.ByteType)
+                .add("sh", DataTypes.ShortType);
+
+        List<Row> data = new ArrayList<>();
+        data.add(RowFactory.create(new Timestamp(TS1), (byte) 1, (short) 2));
+        spark.createDataFrame(data, schema)
+                .write()
+                .mode("append")
+                .jdbc(BASE_URL, created, connProps);
+
+        List<Row> rows = readTable(created).collectAsList();
+        assertEquals(1, rows.size());
+        assertEquals(new Timestamp(TS1), rows.get(0).getTimestamp(0));
+        assertEquals(1, rows.get(0).getInt(1));
+        assertEquals(2, rows.get(0).getInt(2));
     }
 
     @Test
