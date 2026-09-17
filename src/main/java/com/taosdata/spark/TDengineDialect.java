@@ -12,8 +12,8 @@ import java.sql.Types;
 /**
  * Spark JDBC dialect for TDengine.
  *
- * <p>Handles every URL prefix of the TDengine JDBC driver: native ({@code jdbc:TAOS://}),
- * WebSocket ({@code jdbc:TAOS-WS://}) and REST ({@code jdbc:TAOS-RS://}).
+ * <p>Handles only the WebSocket URL prefix of the TDengine JDBC driver
+ * ({@code jdbc:TAOS-WS://}), the recommended connection mode for TDengine 3.x.
  *
  * <p>Spark does not auto-discover JDBC dialects; register the dialect once on the driver
  * before running JDBC queries:
@@ -25,7 +25,7 @@ public class TDengineDialect extends JdbcDialect {
 
     @Override
     public boolean canHandle(String url) {
-        return url != null && url.startsWith("jdbc:TAOS");
+        return url != null && url.startsWith("jdbc:TAOS-WS://");
     }
 
     @Override

@@ -18,9 +18,9 @@ public class TDengineDialectTest {
 
     @Test
     public void testCanHandle() {
-        assertTrue(dialect.canHandle("jdbc:TAOS://127.0.0.1:6030/test"));
         assertTrue(dialect.canHandle("jdbc:TAOS-WS://127.0.0.1:6041/test"));
-        assertTrue(dialect.canHandle("jdbc:TAOS-RS://127.0.0.1:6041/test"));
+        assertFalse(dialect.canHandle("jdbc:TAOS://127.0.0.1:6030/test"));
+        assertFalse(dialect.canHandle("jdbc:TAOS-RS://127.0.0.1:6041/test"));
         assertFalse(dialect.canHandle("jdbc:mysql://127.0.0.1:3306/test"));
         assertFalse(dialect.canHandle("jdbc:postgresql://127.0.0.1:5432/test"));
         assertFalse(dialect.canHandle(null));

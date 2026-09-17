@@ -27,7 +27,7 @@ English | [简体中文](./README-CN.md)
 
 Features:
 
-- Supports all connection modes of the TDengine JDBC driver: native (`jdbc:TAOS://`), WebSocket (`jdbc:TAOS-WS://`), and REST (`jdbc:TAOS-RS://`).
+- Supports the WebSocket connection mode of the TDengine JDBC driver (`jdbc:TAOS-WS://`), the recommended connection mode for TDengine 3.x.
 - Maps TDengine column types to Spark SQL types, e.g. `NCHAR` &rarr; `StringType`, `JSON` &rarr; `StringType`.
 - Maps Spark SQL types to TDengine column types when Spark creates tables, e.g. `StringType` &rarr; `VARCHAR(4096)`, `DateType` &rarr; `TIMESTAMP`.
 - Quotes identifiers with backticks and provides a TDengine-compatible table-existence check.
@@ -166,7 +166,7 @@ We welcome the submission of [GitHub Issue](https://github.com/taosdata/tdengine
 
 - Problem description, whether it always occurs, and it's best to include a detailed call stack.
 - Spark dialect version and Spark version.
-- JDBC driver version and connection mode (native / WebSocket / REST).
+- JDBC driver version.
 - TDengine server version.
 
 ## 9. Submitting PRs

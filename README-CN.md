@@ -27,7 +27,7 @@
 
 功能特性：
 
-- 支持 TDengine JDBC 驱动的全部连接方式：原生连接（`jdbc:TAOS://`）、WebSocket（`jdbc:TAOS-WS://`）和 REST（`jdbc:TAOS-RS://`）。
+- 支持 TDengine JDBC 驱动的 WebSocket 连接方式（`jdbc:TAOS-WS://`），即 TDengine 3.x 推荐的连接方式。
 - 将 TDengine 列类型映射为 Spark SQL 类型，例如 `NCHAR` &rarr; `StringType`、`JSON` &rarr; `StringType`。
 - 在 Spark 建表时将 Spark SQL 类型映射为 TDengine 列类型，例如 `StringType` &rarr; `VARCHAR(4096)`、`DateType` &rarr; `TIMESTAMP`。
 - 使用反引号引用标识符，并提供适配 TDengine 的表存在性检查。
@@ -166,7 +166,7 @@ CI/CD 流水线将随首个正式发布版本一起配置。
 
 - 问题描述、是否必现，最好附上详细的调用栈。
 - Spark 方言版本和 Spark 版本。
-- JDBC 驱动版本和连接方式（原生 / WebSocket / REST）。
+- JDBC 驱动版本。
 - TDengine 服务端版本。
 
 ## 9. 提交 PR
