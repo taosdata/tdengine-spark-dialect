@@ -1,6 +1,8 @@
 <!-- omit in toc -->
 # TDengine Spark Dialect
 
+[![build](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml/badge.svg)](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml)
+
 English | [简体中文](./README-CN.md)
 
 <!-- omit in toc -->
@@ -31,6 +33,7 @@ Features:
 - Maps TDengine column types to Spark SQL types, e.g. `NCHAR` &rarr; `StringType`, `JSON` &rarr; `StringType`.
 - Maps Spark SQL types to TDengine column types when Spark creates tables, e.g. `StringType` &rarr; `VARCHAR(4096)`, `DateType` &rarr; `TIMESTAMP`.
 - Quotes identifiers with backticks and provides a TDengine-compatible table-existence check.
+- Compatible with Spark's V2 JDBC aggregate and `GROUP BY` pushdown (`COUNT`/`SUM`/`AVG`/`MIN`/`MAX`) when the `pushDownAggregate` data source option is enabled.
 
 ## 2. Documentation
 
@@ -133,7 +136,7 @@ After running the tests, a result similar to the following will be printed event
 ```
 [INFO] Results:
 [INFO]
-[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 ```bash
@@ -163,7 +166,7 @@ mvn clean package -Dmaven.test.skip=true
 
 ## 7. CI/CD
 
-CI/CD pipelines will be set up with the first public release.
+- [Build Workflow](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml): runs `mvn clean verify` on JDK 8 against a TDengine server started from the official Docker image.
 
 ## 8. Submitting Issues
 

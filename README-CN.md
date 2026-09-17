@@ -1,6 +1,8 @@
 <!-- omit in toc -->
 # TDengine Spark 方言
 
+[![build](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml/badge.svg)](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml)
+
 [English](./README.md) | 简体中文
 
 <!-- omit in toc -->
@@ -31,6 +33,7 @@
 - 将 TDengine 列类型映射为 Spark SQL 类型，例如 `NCHAR` &rarr; `StringType`、`JSON` &rarr; `StringType`。
 - 在 Spark 建表时将 Spark SQL 类型映射为 TDengine 列类型，例如 `StringType` &rarr; `VARCHAR(4096)`、`DateType` &rarr; `TIMESTAMP`。
 - 使用反引号引用标识符，并提供适配 TDengine 的表存在性检查。
+- 兼容 Spark V2 JDBC 的聚合与 `GROUP BY` 下推（`COUNT`/`SUM`/`AVG`/`MIN`/`MAX`），需开启 `pushDownAggregate` 数据源选项。
 
 ## 2. 文档
 
@@ -133,7 +136,7 @@ mvn clean package -Dmaven.test.skip=true
 ```
 [INFO] Results:
 [INFO]
-[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 ```bash
@@ -163,7 +166,7 @@ mvn clean package -Dmaven.test.skip=true
 
 ## 7. CI/CD
 
-CI/CD 流水线将随首个正式发布版本一起配置。
+- [Build Workflow](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml)：在 JDK 8 上执行 `mvn clean verify`，TDengine 服务端由官方 Docker 镜像启动。
 
 ## 8. 提交 Issue
 
