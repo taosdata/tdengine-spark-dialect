@@ -4,6 +4,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.functions;
 import org.apache.spark.sql.jdbc.JdbcDialects;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
@@ -202,5 +203,54 @@ public class TDengineGeneratedSqlTest {
         assertEquals(new Timestamp(TS2), rows.get(0).getTimestamp(0));
         assertEquals("str-2", rows.get(0).getString(2));
         assertEquals(20, rows.get(0).getInt(5));
+    }
+
+    @Test
+    public void testAggregatePushdown() {
+        // aggregate pushdown exists only in Spark's V2 JDBC path, reached through a
+        // JDBCTableCatalog; V1 (format("jdbc")) never pushes aggregates in Spark 3.3.
+        // The pushDownAggregate flag is a data source option, not a SQL conf in 3.3.
+        spark.conf().set("spark.sql.catalog.tdengine",
+                "org.apache.spark.sql.execution.datasources.v2.jdbc.JDBCTableCatalog");
+        spark.conf().set("spark.sql.catalog.tdengine.url", BASE_URL);
+        spark.conf().set("spark.sql.catalog.tdengine.user", "root");
+        spark.conf().set("spark.sql.catalog.tdengine.password", "taosdata");
+        spark.conf().set("spark.sql.catalog.tdengine.pushDownAggregate", "true");
+        try {
+            Dataset<Row> table = spark.table("tdengine." + DB + ".meters");
+
+            Dataset<Row> agg = table.agg(
+                    functions.count("*").as("c"),
+                    functions.sum("voltage").as("s"),
+                    functions.avg("voltage").as("a"),
+                    functions.min("voltage").as("mi"),
+                    functions.max("voltage").as("ma"));
+            String plan = agg.queryExecution().executedPlan().toString();
+            assertTrue("aggregates should be pushed to TDengine:\n" + plan,
+                    plan.contains("PushedAggregates: [COUNT(*), SUM(voltage), " +
+                            "AVG(voltage), MIN(voltage), MAX(voltage)]"));
+            List<Row> rows = agg.collectAsList();
+            assertEquals(1, rows.size());
+            Row row = rows.get(0);
+            assertEquals(3L, row.getLong(0));
+            assertEquals(663L, row.getLong(1));
+            assertEquals(221.0, row.getDouble(2), 0.0);
+            assertEquals(220, row.getInt(3));
+            assertEquals(222, row.getInt(4));
+
+            Dataset<Row> grouped = table.groupBy("location").agg(functions.sum("voltage").as("s"));
+            String groupPlan = grouped.queryExecution().executedPlan().toString();
+            assertTrue("group by should be pushed to TDengine:\n" + groupPlan,
+                    groupPlan.contains("PushedAggregates: [SUM(voltage)]") &&
+                            !groupPlan.contains("PushedGroupByExpressions: []"));
+            // groups: 'loc-1' -> 220, 'loc-2' -> 221, NULL -> 222
+            assertEquals(3, grouped.collectAsList().size());
+        } finally {
+            spark.conf().unset("spark.sql.catalog.tdengine");
+            spark.conf().unset("spark.sql.catalog.tdengine.url");
+            spark.conf().unset("spark.sql.catalog.tdengine.user");
+            spark.conf().unset("spark.sql.catalog.tdengine.password");
+            spark.conf().unset("spark.sql.catalog.tdengine.pushDownAggregate");
+        }
     }
 }
