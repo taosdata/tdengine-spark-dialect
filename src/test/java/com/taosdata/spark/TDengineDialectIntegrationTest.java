@@ -69,7 +69,7 @@ public class TDengineDialectIntegrationTest {
         }
 
         // Spark does not auto-discover JDBC dialects, so registration is required
-        JdbcDialects.registerDialect(new TDengineDialect());
+        JdbcDialects.registerDialect(TestDialect.INSTANCE);
 
         spark = SparkSession.builder()
                 .master("local[2]")

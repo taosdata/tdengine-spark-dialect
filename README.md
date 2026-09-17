@@ -76,6 +76,11 @@ df.write()
         .jdbc("jdbc:TAOS-WS://127.0.0.1:6041/", "test.meters", props);
 ```
 
+### Known Limitations
+
+- When Spark creates a table (write with `append`/`overwrite` to a non-existing table), all fields of the DataFrame schema must be nullable, because TDengine has no `NOT NULL` constraint syntax. The first column must also be a `TIMESTAMP`, as required by TDengine.
+- The `truncate` write option is not supported; TDengine has no `TRUNCATE TABLE` statement. Use `overwrite` mode instead, which drops and recreates the table.
+
 ## 3. Prerequisites
 
 ### System Requirements
@@ -128,7 +133,7 @@ After running the tests, a result similar to the following will be printed event
 ```
 [INFO] Results:
 [INFO]
-[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 ```bash
@@ -141,7 +146,7 @@ mvn test
 
 ### 5.2 Test Case Addition
 
-All tests are located in the `src/test/java/com/taosdata/spark` directory of the project. Unit tests are in `TDengineDialectTest`, and integration tests are in `TDengineDialectIntegrationTest`. You can add new test files or add test cases in existing test files.
+All tests are located in the `src/test/java/com/taosdata/spark` directory of the project. Unit tests are in `TDengineDialectTest`; integration tests are in `TDengineDialectIntegrationTest` (end-to-end read/write) and `TDengineGeneratedSqlTest` (the SQL Spark generates: table-existence probe, filter pushdown, CREATE/DROP TABLE, INSERT). You can add new test files or add test cases in existing test files.
 
 The test cases use the JUnit 4 framework. For the integration tests, a dedicated database (`spark_dialect_test`) with a super table of all common TDengine types is created in the `@BeforeClass` method, and the database is dropped in the `@AfterClass` method.
 

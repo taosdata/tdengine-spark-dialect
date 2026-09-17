@@ -76,6 +76,11 @@ df.write()
         .jdbc("jdbc:TAOS-WS://127.0.0.1:6041/", "test.meters", props);
 ```
 
+### 已知限制
+
+- 由 Spark 建表时（以 `append`/`overwrite` 模式写入不存在的表），DataFrame schema 的所有字段必须可空，因为 TDengine 没有 `NOT NULL` 约束语法；同时按 TDengine 要求，第一列必须是 `TIMESTAMP` 类型。
+- 不支持 `truncate` 写入选项，TDengine 没有 `TRUNCATE TABLE` 语句。需要整表覆盖时请使用 `overwrite` 模式（先删表再重建）。
+
 ## 3. 前置条件
 
 ### 系统要求
@@ -128,7 +133,7 @@ mvn clean package -Dmaven.test.skip=true
 ```
 [INFO] Results:
 [INFO]
-[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 ```bash
@@ -141,7 +146,7 @@ mvn test
 
 ### 5.2 添加测试用例
 
-所有测试位于项目的 `src/test/java/com/taosdata/spark` 目录。单元测试在 `TDengineDialectTest` 中，集成测试在 `TDengineDialectIntegrationTest` 中。可以添加新的测试文件，或在现有测试文件中添加测试用例。
+所有测试位于项目的 `src/test/java/com/taosdata/spark` 目录。单元测试在 `TDengineDialectTest` 中；集成测试在 `TDengineDialectIntegrationTest`（端到端读写）和 `TDengineGeneratedSqlTest`（Spark 生成的各类 SQL：表存在性探测、过滤下推、CREATE/DROP TABLE、INSERT）中。可以添加新的测试文件，或在现有测试文件中添加测试用例。
 
 测试用例使用 JUnit 4 框架。集成测试在 `@BeforeClass` 方法中创建专用数据库（`spark_dialect_test`）以及一张覆盖 TDengine 常用类型的超级表，并在 `@AfterClass` 方法中删除该数据库。
 
