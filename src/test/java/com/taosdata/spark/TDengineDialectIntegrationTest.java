@@ -64,6 +64,19 @@ public class TDengineDialectIntegrationTest {
             stmt.execute("INSERT INTO " + TABLE + " VALUES " +
                     "(" + TS1 + ", 1.5, 220, 3.14, 'loc-1', 'note-1', true, 1, 10, 1000, '\\x0102ab'), " +
                     "(" + TS2 + ", 2.5, 221, 6.28, 'loc-2', 'note-2', false, 2, 20, 2000, '\\x0304cd')");
+            // super table with INT and NCHAR tags, two child tables
+            stmt.execute("CREATE STABLE IF NOT EXISTS " + DB + ".weather (" +
+                    "ts TIMESTAMP, temperature DOUBLE, humidity INT) TAGS (city NCHAR(32), note_id INT)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS " + DB + ".w1 USING " + DB + ".weather TAGS ('beijing', 1)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS " + DB + ".w2 USING " + DB + ".weather TAGS ('shanghai', 2)");
+            stmt.execute("INSERT INTO " + DB + ".w1 VALUES (" + TS1 + ", 25.5, 40)");
+            stmt.execute("INSERT INTO " + DB + ".w2 VALUES (" + TS2 + ", 30.5, 65)");
+            // a JSON tag must be the only tag of its super table
+            stmt.execute("CREATE STABLE IF NOT EXISTS " + DB + ".devices (" +
+                    "ts TIMESTAMP, v DOUBLE) TAGS (info JSON)");
+            stmt.execute("CREATE TABLE IF NOT EXISTS " + DB + ".dev1 USING " + DB + ".devices " +
+                    "TAGS ('{\"site\":\"beijing\",\"floor\":3}')");
+            stmt.execute("INSERT INTO " + DB + ".dev1 VALUES (" + TS1 + ", 1.1)");
         } finally {
             conn.close();
         }
@@ -94,9 +107,58 @@ public class TDengineDialectIntegrationTest {
         }
     }
 
+    private Dataset<Row> readTable(String table) {
+        return spark.read()
+                .format("jdbc")
+                .option("url", BASE_URL)
+                .option("dbtable", table)
+                .option("user", "root")
+                .option("password", "taosdata")
+                .load();
+    }
+
     @Test
     public void testDialectRegistration() {
         assertTrue(JdbcDialects.get(BASE_URL) instanceof TDengineDialect);
+    }
+
+    @Test
+    public void testReadSuperTableWithTags() {
+        // reading a super table returns the rows of all child tables plus the tag columns
+        Dataset<Row> df = readTable(DB + ".weather");
+
+        StructType schema = df.schema();
+        assertEquals(DataTypes.TimestampType, schema.apply("ts").dataType());
+        assertEquals(DataTypes.DoubleType, schema.apply("temperature").dataType());
+        assertEquals(DataTypes.IntegerType, schema.apply("humidity").dataType());
+        // the NCHAR tag must come back as StringType; without the dialect Spark cannot map it
+        assertEquals(DataTypes.StringType, schema.apply("city").dataType());
+        assertEquals(DataTypes.IntegerType, schema.apply("note_id").dataType());
+
+        List<Row> rows = df.orderBy("ts").collectAsList();
+        assertEquals(2, rows.size());
+        assertEquals(new Timestamp(TS1), rows.get(0).getTimestamp(0));
+        assertEquals(25.5, rows.get(0).getDouble(1), 0.0);
+        assertEquals(40, rows.get(0).getInt(2));
+        assertEquals("beijing", rows.get(0).getString(3));
+        assertEquals(1, rows.get(0).getInt(4));
+        assertEquals("shanghai", rows.get(1).getString(3));
+        assertEquals(2, rows.get(1).getInt(4));
+    }
+
+    @Test
+    public void testReadJsonTag() {
+        Dataset<Row> df = readTable(DB + ".devices");
+
+        // the driver reports JSON tags as Types.OTHER, the dialect maps them to StringType
+        assertEquals(DataTypes.StringType, df.schema().apply("info").dataType());
+
+        List<Row> rows = df.collectAsList();
+        assertEquals(1, rows.size());
+        assertEquals(1.1, rows.get(0).getDouble(1), 0.0);
+        String info = rows.get(0).getString(2);
+        assertTrue(info.contains("beijing"));
+        assertTrue(info.contains("\"floor\":3") || info.contains("\"floor\": 3"));
     }
 
     @Test
