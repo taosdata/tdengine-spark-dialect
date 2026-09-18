@@ -43,7 +43,6 @@ public class TDengineGeneratedSqlTest {
 
     private static SparkSession spark;
     private static Properties connProps;
-    private static boolean legacyBindPath;
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -58,7 +57,6 @@ public class TDengineGeneratedSqlTest {
             Assume.assumeNoException("cannot reach TDengine at " + BASE_URL + ", skipping integration tests", t);
             return;
         }
-        legacyBindPath = TestServerInfo.isLegacyBindPath(conn);
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE DATABASE IF NOT EXISTS " + DB);
             stmt.execute("CREATE TABLE IF NOT EXISTS " + TABLE + " (" +
@@ -206,12 +204,8 @@ public class TDengineGeneratedSqlTest {
 
     @Test
     public void testSparkCreateTableWithTinyintSmallint() {
-        // Spark binds ByteType/ShortType via setInt; the driver's legacy row-bind
-        // path (server < 3.4.1.13) swaps the column type without converting the value,
-        // which fails with a ClassCastException in SerializeBlock. The stmt2 bind path
-        // of server >= 3.4.1.13 converts the value correctly.
-        Assume.assumeFalse("server < 3.4.1.13: driver legacy bind path cannot write"
-                + " ByteType/ShortType to TINYINT/SMALLINT columns", legacyBindPath);
+        // Spark binds ByteType/ShortType via setInt; taos-jdbcdriver >= 3.9.3 converts
+        // the value on both the stmt2 column-bind path and the legacy row-bind path
         String created = DB + ".spark_tiny_small";
 
         StructType schema = new StructType()
