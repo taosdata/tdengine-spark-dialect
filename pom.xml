@@ -32,7 +32,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spark.version>3.3.2</spark.version>
         <scala.binary.version>2.13</scala.binary.version>
-        <taos.jdbc.version>3.9.2</taos.jdbc.version>
+        <taos.jdbc.version>3.9.3</taos.jdbc.version>
     </properties>
 
     <dependencies>
