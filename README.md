@@ -2,6 +2,8 @@
 # TDengine Spark Dialect
 
 [![build](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml/badge.svg)](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/com.taosdata.spark/tdengine-spark-dialect.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.taosdata.spark/tdengine-spark-dialect)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
 English | [简体中文](./README-CN.md)
 
@@ -42,9 +44,32 @@ Features:
 - For Spark's JDBC data source options (`dbtable`, `partitionColumn`, `fetchsize`, etc.), please check the [Spark SQL Data Sources documentation](https://spark.apache.org/docs/3.3.2/sql-data-sources-jdbc.html).
 - This quick guide is mainly for developers who like to contribute, build, and test the Spark dialect by themselves. To learn about TDengine, you can visit the [official documentation](https://docs.tdengine.com).
 
-### Usage
+### Installation
 
-Put `tdengine-spark-dialect-<version>.jar` and `taos-jdbcdriver-<version>.jar` on the Spark classpath (e.g. `spark-submit --jars ...` or Spark's `jars/` directory).
+The dialect is available on Maven Central. Declare both the dialect and the TDengine JDBC driver — the driver is not a transitive dependency of the dialect and must be added explicitly:
+
+```xml
+<dependency>
+    <groupId>com.taosdata.spark</groupId>
+    <artifactId>tdengine-spark-dialect</artifactId>
+    <version>1.0.0</version>
+</dependency>
+<dependency>
+    <groupId>com.taosdata.jdbc</groupId>
+    <artifactId>taos-jdbcdriver</artifactId>
+    <version>3.9.2</version>
+</dependency>
+```
+
+Or hand both artifacts to Spark directly:
+
+```bash
+spark-submit --packages com.taosdata.spark:tdengine-spark-dialect:1.0.0,com.taosdata.jdbc:taos-jdbcdriver:3.9.2 ...
+```
+
+You can also download the jars from [GitHub Releases](https://github.com/taosdata/tdengine-spark-dialect/releases) and put them on the Spark classpath (`spark-submit --jars ...` or Spark's `jars/` directory).
+
+### Usage
 
 Spark does not auto-discover JDBC dialects, so the dialect must be registered once on the driver before running JDBC queries:
 
