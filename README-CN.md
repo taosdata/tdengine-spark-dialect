@@ -2,6 +2,8 @@
 # TDengine Spark 方言
 
 [![build](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml/badge.svg)](https://github.com/taosdata/tdengine-spark-dialect/actions/workflows/build.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/com.taosdata.spark/tdengine-spark-dialect.svg?label=Maven%20Central)](https://central.sonatype.com/artifact/com.taosdata.spark/tdengine-spark-dialect)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
 [English](./README.md) | 简体中文
 
@@ -42,9 +44,32 @@
 - Spark JDBC 数据源的选项说明（`dbtable`、`partitionColumn`、`fetchsize` 等），请参考 [Spark SQL 数据源文档](https://spark.apache.org/docs/3.3.2/sql-data-sources-jdbc.html)。
 - 本快速指南主要面向希望自行贡献、构建和测试 Spark 方言的开发者。如需了解 TDengine，请访问[官方文档](https://docs.tdengine.com)。
 
-### 使用方法
+### 安装
 
-将 `tdengine-spark-dialect-<version>.jar` 和 `taos-jdbcdriver-<version>.jar` 放到 Spark classpath 上（例如 `spark-submit --jars ...` 或 Spark 的 `jars/` 目录）。
+本方言已发布到 Maven Central。需要同时声明方言和 TDengine JDBC 驱动两个依赖——驱动不是方言的传递依赖，必须显式添加：
+
+```xml
+<dependency>
+    <groupId>com.taosdata.spark</groupId>
+    <artifactId>tdengine-spark-dialect</artifactId>
+    <version>1.0.0</version>
+</dependency>
+<dependency>
+    <groupId>com.taosdata.jdbc</groupId>
+    <artifactId>taos-jdbcdriver</artifactId>
+    <version>3.9.2</version>
+</dependency>
+```
+
+也可以直接把两个构件交给 Spark：
+
+```bash
+spark-submit --packages com.taosdata.spark:tdengine-spark-dialect:1.0.0,com.taosdata.jdbc:taos-jdbcdriver:3.9.2 ...
+```
+
+还可以从 [GitHub Releases](https://github.com/taosdata/tdengine-spark-dialect/releases) 下载 jar 包，放到 Spark classpath 上（`spark-submit --jars ...` 或 Spark 的 `jars/` 目录）。
+
+### 使用方法
 
 Spark 不会自动发现 JDBC 方言，需要在 driver 端执行 JDBC 查询前先注册一次：
 
