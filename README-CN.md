@@ -83,7 +83,7 @@ df.write()
 
 - 由 Spark 建表时（以 `append`/`overwrite` 模式写入不存在的表），DataFrame schema 的所有字段必须可空，因为 TDengine 没有 `NOT NULL` 约束语法；同时按 TDengine 要求，第一列必须是 `TIMESTAMP` 类型。
 - 不支持 `truncate` 写入选项，TDengine 没有 `TRUNCATE TABLE` 语句。需要整表覆盖时请使用 `overwrite` 模式（先删表再重建）。
-- 向 `TINYINT`/`SMALLINT` 列写入 Spark `ByteType`/`ShortType` 数据要求 taos-jdbcdriver >= 3.9.3。Spark 对这两种类型一律调用 `setInt` 绑定，更早的驱动在与服务端 < 3.4.1.13 搭配使用的 legacy 行绑定路径上会以 `ClassCastException` 失败（stmt2 绑定路径的转换是正确的）。其余类型不受影响。
+- 向 `TINYINT`/`SMALLINT` 列写入 Spark `ByteType`/`ShortType` 数据要求 TDengine 服务端 >= 3.4.1.13。Spark 对这两种类型一律调用 `setInt` 绑定，只有服务端 >= 3.4.1.13 时驱动使用的 stmt2 绑定路径才会做数值转换；更早版本走驱动 legacy 行绑定路径，会以 `ClassCastException` 失败。其余类型不受影响。
 
 ## 3. 前置条件
 
@@ -143,6 +143,8 @@ mvn test -Dtdengine.ws.url=jdbc:TAOS-WS://192.168.1.100:6041/
 [INFO]
 [INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0
 ```
+
+当 TDengine 服务端版本低于 3.4.1.13 时，实际运行的用例会略少——`ByteType`/`ShortType` 写入相关用例会被跳过（见[已知限制](#已知限制)）。
 
 ```bash
 # 运行完整测试套件

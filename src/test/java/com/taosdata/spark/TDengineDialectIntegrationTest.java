@@ -40,6 +40,7 @@ public class TDengineDialectIntegrationTest {
 
     private static SparkSession spark;
     private static Properties connProps;
+    private static boolean legacyBindPath;
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -54,6 +55,7 @@ public class TDengineDialectIntegrationTest {
             Assume.assumeNoException("cannot reach TDengine at " + BASE_URL + ", skipping integration tests", t);
             return;
         }
+        legacyBindPath = TestServerInfo.isLegacyBindPath(conn);
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE DATABASE IF NOT EXISTS " + DB);
             stmt.execute("CREATE STABLE IF NOT EXISTS " + DB + ".meters (" +
@@ -215,8 +217,9 @@ public class TDengineDialectIntegrationTest {
 
     @Test
     public void testWriteToTDengine() {
-        // Spark binds ByteType/ShortType via setInt; taos-jdbcdriver >= 3.9.3 converts
-        // the value on both the stmt2 column-bind path and the legacy row-bind path
+        // Spark binds ByteType/ShortType via setInt; the driver's legacy row-bind
+        // path (server < 3.4.1.13) cannot convert that to TINYINT/SMALLINT, so on
+        // such servers the two columns are left out and TDengine fills them with NULL
         StructType schema = new StructType()
                 .add("ts", DataTypes.TimestampType)
                 .add("current", DataTypes.FloatType)
@@ -224,15 +227,24 @@ public class TDengineDialectIntegrationTest {
                 .add("phase", DataTypes.DoubleType)
                 .add("location", DataTypes.StringType)
                 .add("note", DataTypes.StringType)
-                .add("active", DataTypes.BooleanType)
-                .add("tiny", DataTypes.ByteType)
-                .add("small", DataTypes.ShortType)
+                .add("active", DataTypes.BooleanType);
+        if (!legacyBindPath) {
+            schema = schema
+                    .add("tiny", DataTypes.ByteType)
+                    .add("small", DataTypes.ShortType);
+        }
+        schema = schema
                 .add("big", DataTypes.LongType)
                 .add("vb", DataTypes.BinaryType);
 
         List<Object> values = new ArrayList<>(java.util.Arrays.asList(
-                new Timestamp(TS3), 3.5f, 222, 9.42, "loc-3", "note-3", true,
-                (byte) 3, (short) 30, 3000L, new byte[]{0x05, 0x06, (byte) 0xef}));
+                new Timestamp(TS3), 3.5f, 222, 9.42, "loc-3", "note-3", true));
+        if (!legacyBindPath) {
+            values.add((byte) 3);
+            values.add((short) 30);
+        }
+        values.add(3000L);
+        values.add(new byte[]{0x05, 0x06, (byte) 0xef});
 
         List<Row> data = new ArrayList<>();
         data.add(RowFactory.create(values.toArray()));
@@ -261,8 +273,13 @@ public class TDengineDialectIntegrationTest {
         assertEquals("loc-3", row.getString(4));
         assertEquals("note-3", row.getString(5));
         assertTrue(row.getBoolean(6));
-        assertEquals(3, row.getInt(7));
-        assertEquals(30, row.getInt(8));
+        if (legacyBindPath) {
+            assertTrue(row.isNullAt(7));
+            assertTrue(row.isNullAt(8));
+        } else {
+            assertEquals(3, row.getInt(7));
+            assertEquals(30, row.getInt(8));
+        }
         assertEquals(3000L, row.getLong(9));
         assertArrayEquals(new byte[]{0x05, 0x06, (byte) 0xef}, (byte[]) row.getAs("vb"));
     }

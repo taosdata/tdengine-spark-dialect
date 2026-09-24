@@ -83,7 +83,7 @@ df.write()
 
 - When Spark creates a table (write with `append`/`overwrite` to a non-existing table), all fields of the DataFrame schema must be nullable, because TDengine has no `NOT NULL` constraint syntax. The first column must also be a `TIMESTAMP`, as required by TDengine.
 - The `truncate` write option is not supported; TDengine has no `TRUNCATE TABLE` statement. Use `overwrite` mode instead, which drops and recreates the table.
-- Writing Spark `ByteType`/`ShortType` values into `TINYINT`/`SMALLINT` columns requires taos-jdbcdriver >= 3.9.3. Spark binds both types via `setInt`, and older drivers fail with a `ClassCastException` on the legacy row-bind path used with servers < 3.4.1.13 (the stmt2 path converts the value correctly). All other types are unaffected.
+- Writing Spark `ByteType`/`ShortType` values into `TINYINT`/`SMALLINT` columns requires TDengine server >= 3.4.1.13. Spark binds both types via `setInt`, and only the stmt2 bind path used with server >= 3.4.1.13 converts the value; with older servers the driver's legacy row-bind path fails with a `ClassCastException`. All other types are unaffected.
 
 ## 3. Prerequisites
 
@@ -143,6 +143,8 @@ After running the tests, a result similar to the following will be printed event
 [INFO]
 [INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0
 ```
+
+The total number of tests run may be slightly lower against TDengine servers older than 3.4.1.13, where the `ByteType`/`ShortType` write tests are skipped (see [Known Limitations](#known-limitations)).
 
 ```bash
 # run the full test suite
